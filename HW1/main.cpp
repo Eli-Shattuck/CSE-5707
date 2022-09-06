@@ -34,13 +34,13 @@ int solve_r(int cap, int n, Data* data, int currW, int currV, int currC) {
 float greedy(Data* data, int n, int cap, int c) {
     float sum = 0;
     for (int i = c; (i < n) && cap > 0; i++) {
-        int w = data->w;
+        int w = data[i].w;
         if (w > cap) {
-            sum += (float)cap/w * data->v;
+            sum += (float)cap/w * data[i].v;
             break;
         }
         else {
-            sum += (float)data->v;
+            sum += (float)data[i].v;
             cap -= w;
         }
     }
@@ -99,7 +99,7 @@ int cmp(const void* a, const void* b) {
 }
 
 int main(int argc, char** argv) {
-
+    printf("Here\n");
     if(argc != 2) {
         printf("Usage: knap [fileName]\n");
         return 0;
@@ -118,6 +118,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < n; i++) {
         fscanf(fp, "%*d %d %d \n", &v, &w);
         data[i] = Data(w, v, v / (float)w );
+        //printf("%d %d\n", v, w);
     }
 
     int cap;
