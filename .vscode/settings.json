@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "chrono": "cpp",
+        "xiosbase": "cpp",
+        "xtree": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "forward_list": "cpp",
+        "queue": "cpp",
+        "vector": "cpp",
+        "xlocinfo": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "thread": "cpp"
+    }
+}

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"container/heap"
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -13,14 +12,14 @@ import (
 type Data struct {
 	w int
 	v int
-	r float32
+	r float64
 }
 
 type Node struct {
-	w     int // weight
-	v     int // value
-	c     int // index in data
-	ub    int // upper bound
+	w     int     // weight
+	v     int     // value
+	c     int     // index in data
+	ub    float64 // upper bound
 	index int
 }
 
@@ -75,7 +74,7 @@ func solve_r(cap int, n int, data []Data, currW int, currV int, currC int) int {
 	return leave
 }
 
-func greedy(data []Data, n int, cap int, c int) int {
+func greedy(data []Data, n int, cap int, c int) float64 {
 	var sum float64 = 0
 	for i := c; (i < n) && cap > 0; i++ {
 		w := data[i].w
@@ -88,7 +87,7 @@ func greedy(data []Data, n int, cap int, c int) int {
 		}
 	}
 
-	return int(math.Ceil(sum))
+	return sum
 }
 
 func solve(cap int, n int, data []Data) int {
@@ -110,12 +109,12 @@ func solve(cap int, n int, data []Data) int {
 			continue
 		}
 
-		ub_leave := curr.v + greedy(data, n, cap-curr.w, curr.c+1)
-		ub_take := curr.v + data[curr.c].v + greedy(data, n, cap-curr.w-data[curr.c].w, curr.c+1)
+		ub_leave := float64(curr.v) + greedy(data, n, cap-curr.w, curr.c+1)
+		ub_take := float64(curr.v) + float64(data[curr.c].v) + greedy(data, n, cap-curr.w-data[curr.c].w, curr.c+1)
 
 		//if(ub_leave == lb || ub_take == lb) return lb;
 
-		if ub_leave > lb && curr.w < cap {
+		if ub_leave > float64(lb) && curr.w < cap {
 			queue.Push(&Node{curr.w, curr.v, curr.c + 1, ub_leave, -1})
 		} else if curr.w == cap && curr.v > lb {
 			lb = curr.v
@@ -123,7 +122,7 @@ func solve(cap int, n int, data []Data) int {
 
 		tmpW := curr.w + data[curr.c].w
 		tmpV := curr.v + data[curr.c].v
-		if ub_take > lb && tmpW < cap {
+		if ub_take > float64(lb) && tmpW < cap {
 			queue.Push(&Node{tmpW, tmpV, curr.c + 1, ub_take, -1})
 		} else if tmpW == cap && tmpV > lb {
 			lb = tmpV
@@ -161,7 +160,7 @@ func main() {
 	for i := 0; i < n; i++ {
 		scanner.Scan()
 		fmt.Fscanf(strings.NewReader(scanner.Text()), "%d %d %d\n", &d, &v, &w)
-		data[i] = Data{w, v, float32(v) / float32(w)}
+		data[i] = Data{w, v, float64(v) / float64(w)}
 		//fmt.Printf("(v: %d, w: %d, r: %f)\n", data[i].v, data[i].w, data[i].r)
 	}
 
