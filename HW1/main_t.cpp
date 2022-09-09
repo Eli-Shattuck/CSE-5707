@@ -3,6 +3,8 @@
 #include <string.h>
 #include <queue>
 #include <cmath>
+#include <thread>
+#include <set>
 
 typedef struct Data {
     int w;
@@ -29,17 +31,16 @@ typedef struct Node {
     }
 } Node;
 
+typedef struct ThreadData {
+    Node* take;
+    Node* leave;
+    int lb;
+    unsigned long int* taken;
+    ThreadData(Node* _t, Node* _l, int _lb) { take=_t; leave=_l; lb=_lb; taken=nullptr;};
+} ThreadData;
+
 int lb = 0;
 unsigned long int * takenItems;
-int solve_r(int cap, int n, Data* data, int currW, int currV, int currC) {
-    if(currW > cap) return 0;
-    if(currC == n) return currV;
-
-    int leave = solve_r(cap, n, data, currW, currV, currC+1);
-    int take = solve_r(cap, n, data, currW + data[currC].w, currV + data[currC].v, currC+1);
-
-    return take > leave ? take : leave;
-}
 
 float greedy(Data* data, int n, int cap, int c) {
     float sum = 0;
@@ -58,29 +59,24 @@ float greedy(Data* data, int n, int cap, int c) {
     return sum;
 }
 
-int solve(int cap, int n, Data* data) {
-    auto cmp = [](Node* a, Node* b) { return a->ub < b->ub; };
-    std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> queue(cmp);
+int sz;
 
-    const int sz = ceil((double)n / 64);
+void help(int cap, int n, Data* data, Node* curr, ThreadData** ret) {
+    ThreadData* td = new ThreadData(nullptr, nullptr, lb);
+    td->taken = curr->taken;
 
-    float ub = greedy(data, n, cap, 0);
-    queue.push(
-        new Node(0, 0, 0, ub, sz)
-    );
-
-    while(!queue.empty()) {
-        Node* curr = queue.top();
-        queue.pop();
-
-        //if(curr->w > cap) continue;
-        if(curr->v > lb) {
-            lb = curr->v;
-            for (int i = 0; i < sz; i++) {
-                takenItems[i] = curr->taken[i];
-            }
+    //if(curr->w > cap) continue;
+        if(curr->v > td->lb) {
+            td->lb = curr->v;
+            // for (int i = 0; i < sz; i++) {
+            //     takenItems[i] = curr->taken[i];
+            // }
+            //td->taken = curr->taken;
         }
-        if(curr->c >= n) continue;
+        if(curr->c >= n) {
+            *ret = td;
+            return;
+        }
 
         float ub_leave = curr->v + greedy(data, n, cap - curr->w, curr->c+1);
         float ub_take  = curr->v + data[curr->c].v + greedy(data, n, cap - curr->w - data[curr->c].w, curr->c+1);
@@ -90,15 +86,14 @@ int solve(int cap, int n, Data* data) {
         Node* leftNode = new Node(curr->w, curr->v, curr->c+1, ub_leave, sz);
         leftNode->copyTaken(curr, sz);
 
-        if(ub_leave > lb && curr->w < cap) {
-            queue.push(
-                leftNode
-            );
-        } else if(curr->w == cap && curr->v > lb) {
-            lb = curr->v;
-            for (int i = 0; i < sz; i++) {
-                takenItems[i] = leftNode->taken[i];
-            }
+        if(ub_leave > td->lb && curr->w < cap) {
+            td->leave = leftNode;
+        } else if(curr->w == cap && curr->v > td->lb) {
+            td->lb = curr->v;
+            // for (int i = 0; i < sz; i++) {
+            //     takenItems[i] = leftNode->taken[i];
+            // }
+            td->taken = leftNode->taken;
         }
 
         int tmpW = curr->w + data[curr->c].w;
@@ -111,16 +106,62 @@ int solve(int cap, int n, Data* data) {
         int tIndex = curr->c / 64;
         takeNode->taken[tIndex] = takeNode->taken[tIndex] | (unsigned long int)1 << index;
 
-        if(ub_take > lb && tmpW < cap) {
-            queue.push(
-                takeNode
-            );
-        }  else if(tmpW == cap && tmpV > lb) {
-            lb = tmpV;
-            for (int i = 0; i < sz; i++) {
-                takenItems[i] = takeNode->taken[i];
+        if(ub_take > td->lb && tmpW < cap) {
+            td->take = takeNode;
+        }  else if(tmpW == cap && tmpV > td->lb) {
+            td->lb = tmpV;
+            // for (int i = 0; i < sz; i++) {
+            //     takenItems[i] = takeNode->taken[i];
+            // }
+            td->taken = takeNode->taken;
+        }
+
+        *ret = td;
+        //printf("%p -> %d\n", (*ret)->take, (*ret)->take->c);
+}
+
+const int THREAD_COUNT = 8;
+
+int solve(int cap, int n, Data* data) {
+    auto cmp = [](Node* a, Node* b) { return a->ub > b->ub; };
+    std::set<Node*, decltype(cmp)> queue(cmp);
+
+    float ub = greedy(data, n, cap, 0);
+    queue.insert(
+        new Node(0, 0, 0, ub, sz)
+    );
+
+    std::thread workers[THREAD_COUNT];
+    ThreadData* tds[THREAD_COUNT];
+
+    while(!queue.empty()) {
+        int activeWorkers = 0;
+        for(int i = 0; i < THREAD_COUNT && !queue.empty(); i++) {
+            activeWorkers++;
+            auto ch = queue.extract(queue.begin());
+            Node* curr = ch.value();
+            //printf("%d\n", curr->ub);
+            workers[i] = std::thread(help, cap, n, data, curr, &tds[i]);
+        }
+        //printf("\n");
+        //tds[0] = new ThreadData(nullptr, nullptr, 0);
+        //printf("%d\n", activeWorkers);
+        for (int i = 0; i < activeWorkers; i++) {
+            workers[i].join();
+            //printf("%p\n", tds[i]->leave);
+            if(tds[i]->leave) queue.insert(tds[i]->leave);
+            //printf("%p\n", tds[i]->take);
+            if(tds[i]->take ) queue.insert(tds[i]->take );
+
+            //printf("here\n");
+            if(tds[i]->lb > lb) {
+                lb = tds[i]->lb;
+                for (int j = 0; j < sz; j++) {
+                    takenItems[j] = tds[i]->taken[j];
+                }
             }
         }
+        //printf("=====\nrestart queue\n=====\n");
     }
 
     return lb;
@@ -149,6 +190,9 @@ int main(int argc, char** argv) {
     int n;
     fscanf(fp, "%d\n", &n);
 
+    sz = ceil((double)n / 64);
+    takenItems = new unsigned long int[sz];
+    
     Data* data = (Data*)malloc(sizeof(Data) * n); 
 
     int w,v, index;
@@ -170,12 +214,8 @@ int main(int argc, char** argv) {
     //for (int i = 0; i < n; i++) printf("(%d, %d, %.2f)\n", data[i].v, data[i].w, data[i].r);
 
 
-    const int sz = ceil((double)n / 64);
-    takenItems = new unsigned long int[sz];
-
     //int best = solve_r(cap, n, data, 0, 0, 0);
     int best = solve(cap, n, data);
-    
 
     for (int i = 0; i < n; i++) {
         int mod = i % 64;
@@ -185,6 +225,7 @@ int main(int argc, char** argv) {
             printf("Took item [%d %d %d]\n", data[i].index, data[i].v, data[i].w);
         }
     }
+
     printf("[%d]\n", best);
 
     delete [] takenItems;

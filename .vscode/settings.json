@@ -11,6 +11,7 @@
         "xlocinfo": "cpp",
         "xstring": "cpp",
         "xutility": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "map": "cpp"
     }
 }

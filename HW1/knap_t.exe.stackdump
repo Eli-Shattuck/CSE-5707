@@ -5,7 +5,7 @@ r8 =00000000FFFFC9FC r9 =0000000000000000 r10=0000000100000000
 r11=00000001004018B8 r12=00000000FFFFCC70 r13=00000000FFFFCDF0
 r14=0000000000000000 r15=0000000000000000
 rbp=00000000FFFFCAE0 rsp=00000000FFFFCA60
-program=C:\Users\Eli\Documents\School\semester 7\CSE 5707\HW1\knap_t.exe, pid 1703, thread main
+program=C:\Users\Eli\Documents\School\semester 7\CSE 5707\HW1\knap_t.exe, pid 1722, thread main
 cs=0033 ds=002B es=002B fs=0053 gs=002B ss=002B
 Stack trace:
 Frame        Function    Args
