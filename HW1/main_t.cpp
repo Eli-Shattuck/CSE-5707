@@ -7,25 +7,25 @@
 #include <set>
 
 typedef struct Data {
-    int w;
-    int v;
+    uint64_t w;
+    uint64_t v;
     float r;
-    int index;
-    Data(int _w, int _v, float _r, int _index) { w=_w; v=_v; r=_r; index=_index;};
+    uint64_t index;
+    Data(uint64_t _w, uint64_t _v, float _r, uint64_t _index) { w=_w; v=_v; r=_r; index=_index;};
 } Data;
 
 typedef struct Node {
-    int w; // weight
-    int v; // value
-    int c; // index in data
-    int ub; // upper bound
-    unsigned long int* taken; // uses the bits stored to keep track of the taken items
-    Node(int _w, int _v, int _c, int _ub, int sz) { w = _w; v = _v; c = _c; ub = _ub; taken = new unsigned long int[sz]; for (int i = 0; i < sz; i++) {taken[i] = 0;}};
+    uint64_t w; // weight
+    uint64_t v; // value
+    uint64_t c; // index in data
+    uint64_t ub; // upper bound
+    uint64_t* taken; // uses the bits stored to keep track of the taken items
+    Node(uint64_t _w, uint64_t _v, uint64_t _c, uint64_t _ub, uint64_t sz) { w = _w; v = _v; c = _c; ub = _ub; taken = new uint64_t[sz]; for (size_t i = 0; i < sz; i++) {taken[i] = 0;}};
     ~Node() {
         delete [] taken;
     }
-    void copyTaken(Node* n, int sz) {
-        for (int i = 0; i < sz; i++) {
+    void copyTaken(Node* n, uint64_t sz) {
+        for (size_t i = 0; i < sz; i++) {
             taken[i] = n->taken[i];
         }
     }
@@ -34,18 +34,18 @@ typedef struct Node {
 typedef struct ThreadData {
     Node* take;
     Node* leave;
-    int lb;
-    unsigned long int* taken;
-    ThreadData(Node* _t, Node* _l, int _lb) { take=_t; leave=_l; lb=_lb; taken=nullptr;};
+    uint64_t lb;
+    uint64_t* taken;
+    ThreadData(Node* _t, Node* _l, uint64_t _lb) { take=_t; leave=_l; lb=_lb; taken=nullptr;};
 } ThreadData;
 
-int lb = 0;
-unsigned long int * takenItems;
+uint64_t lb = 0ull;
+uint64_t* takenItems;
 
-float greedy(Data* data, int n, int cap, int c) {
+float greedy(Data* data, uint64_t n, uint64_t cap, uint64_t c) {
     float sum = 0;
-    for (int i = c; (i < n) && cap > 0; i++) {
-        int w = data[i].w;
+    for (size_t i = c; (i < n) && cap > 0; i++) {
+        uint64_t w = data[i].w;
         if (w > cap) {
             sum += (float)cap/w * data[i].v;
             break;
@@ -59,104 +59,112 @@ float greedy(Data* data, int n, int cap, int c) {
     return sum;
 }
 
-int sz;
+uint64_t sz;
 
-void help(int cap, int n, Data* data, Node* curr, ThreadData** ret) {
+void help(uint64_t cap, uint64_t n, Data* data, Node* curr, ThreadData** ret) {
     ThreadData* td = new ThreadData(nullptr, nullptr, lb);
     td->taken = curr->taken;
 
     //if(curr->w > cap) continue;
-        if(curr->v > td->lb) {
+        if(curr->v > lb) {
             td->lb = curr->v;
-            // for (int i = 0; i < sz; i++) {
+            // for (size_t i = 0; i < sz; i++) {
             //     takenItems[i] = curr->taken[i];
             // }
             //td->taken = curr->taken;
         }
+
         if(curr->c >= n) {
             *ret = td;
             return;
         }
 
-        float ub_leave = curr->v + greedy(data, n, cap - curr->w, curr->c+1);
-        float ub_take  = curr->v + data[curr->c].v + greedy(data, n, cap - curr->w - data[curr->c].w, curr->c+1);
+        float ub_leave = curr->v + greedy(data, n, cap - curr->w, curr->c+1ull);
+        float ub_take  = curr->v + data[curr->c].v + greedy(data, n, cap - curr->w - data[curr->c].w, curr->c+1ull);
         
         //if(ub_leave == lb || ub_take == lb) return lb;
         // copies the taken items
-        Node* leftNode = new Node(curr->w, curr->v, curr->c+1, ub_leave, sz);
+        Node* leftNode = new Node(curr->w, curr->v, curr->c+1ull, ub_leave, sz);
         leftNode->copyTaken(curr, sz);
 
-        if(ub_leave > td->lb && curr->w < cap) {
+        if(ub_leave > std::max(lb, td->lb) && curr->w < cap) {
             td->leave = leftNode;
-        } else if(curr->w == cap && curr->v > td->lb) {
+        } else if(curr->w == cap && curr->v > std::max(lb, td->lb)) {
             td->lb = curr->v;
-            // for (int i = 0; i < sz; i++) {
+            // for (size_t i = 0; i < sz; i++) {
             //     takenItems[i] = leftNode->taken[i];
             // }
             td->taken = leftNode->taken;
         }
 
-        int tmpW = curr->w + data[curr->c].w;
-        int tmpV = curr->v + data[curr->c].v;
+        uint64_t tmpW = curr->w + data[curr->c].w;
+        uint64_t tmpV = curr->v + data[curr->c].v;
 
         // copies the taken items and sets the most recent item to taken
-        Node* takeNode = new Node(tmpW, tmpV, curr->c+1, ub_take, sz);
+        Node* takeNode = new Node(tmpW, tmpV, curr->c+1ull, ub_take, sz);
         takeNode->copyTaken(curr, sz);
-        int index = curr->c % 64;
-        int tIndex = curr->c / 64;
-        takeNode->taken[tIndex] = takeNode->taken[tIndex] | (unsigned long int)1 << index;
+        uint64_t index = data[curr->c].index % 64ull;
+        uint64_t tIndex = data[curr->c].index / 64ull;
+        takeNode->taken[tIndex] = takeNode->taken[tIndex] | 1ull << index;
 
-        if(ub_take > td->lb && tmpW < cap) {
+        if(ub_take > std::max(lb, td->lb) && tmpW < cap) {
             td->take = takeNode;
-        }  else if(tmpW == cap && tmpV > td->lb) {
+        }  else if(tmpW == cap && tmpV > std::max(lb, td->lb)) {
             td->lb = tmpV;
-            // for (int i = 0; i < sz; i++) {
+            // for (size_t i = 0; i < sz; i++) {
             //     takenItems[i] = takeNode->taken[i];
             // }
             td->taken = takeNode->taken;
         }
 
         *ret = td;
-        //printf("%p -> %d\n", (*ret)->take, (*ret)->take->c);
+        //printf("%p -> %llu\n", (*ret)->take, (*ret)->take->c);
 }
 
-const int THREAD_COUNT = 8;
+const uint64_t THREAD_COUNT = 1ull;
+uint64_t insertCount = 1;
 
-int solve(int cap, int n, Data* data) {
+uint64_t solve(uint64_t cap, uint64_t n, Data* data) {
     auto cmp = [](Node* a, Node* b) { return a->ub > b->ub; };
     std::set<Node*, decltype(cmp)> queue(cmp);
 
-    float ub = greedy(data, n, cap, 0);
+    float ub = greedy(data, n, cap, 0ull);
     queue.insert(
-        new Node(0, 0, 0, ub, sz)
+        new Node(0ull, 0ull, 0ull, ub, sz)
     );
 
     std::thread workers[THREAD_COUNT];
     ThreadData* tds[THREAD_COUNT];
 
     while(!queue.empty()) {
-        int activeWorkers = 0;
-        for(int i = 0; i < THREAD_COUNT && !queue.empty(); i++) {
+        uint64_t activeWorkers = 0ull;
+        for(size_t i = 0; i < THREAD_COUNT && !queue.empty(); i++) {
             activeWorkers++;
             auto ch = queue.extract(queue.begin());
             Node* curr = ch.value();
-            //printf("%d\n", curr->ub);
+            //printf("%llu\n", curr->ub);
             workers[i] = std::thread(help, cap, n, data, curr, &tds[i]);
         }
         //printf("\n");
         //tds[0] = new ThreadData(nullptr, nullptr, 0);
-        //printf("%d\n", activeWorkers);
-        for (int i = 0; i < activeWorkers; i++) {
+        //printf("%llu\n", activeWorkers);
+        for (size_t i = 0; i < activeWorkers; i++) {
             workers[i].join();
             //printf("%p\n", tds[i]->leave);
-            if(tds[i]->leave) queue.insert(tds[i]->leave);
+            if(tds[i]->leave) {
+                queue.insert(tds[i]->leave);
+                insertCount++;
+            }
             //printf("%p\n", tds[i]->take);
-            if(tds[i]->take ) queue.insert(tds[i]->take );
+            if(tds[i]->take ) {
+                queue.insert(tds[i]->take );
+                insertCount++;
+            }
 
-            //printf("here\n");
+            //printf("here\n"
             if(tds[i]->lb > lb) {
                 lb = tds[i]->lb;
-                for (int j = 0; j < sz; j++) {
+                for (size_t j = 0; j < sz; j++) {
                     takenItems[j] = tds[i]->taken[j];
                 }
             }
@@ -177,6 +185,20 @@ int cmp(const void* a, const void* b) {
     return 0;
 }
 
+int cmp2(const void* a, const void* b) { 
+    return ((Data*)a)->index - ((Data*)b)->index;
+}
+
+uint64_t numSlots(uint64_t n) {
+    //printf("%u\n", n/64ull);
+    if (n % 64ull == 0ull) {
+        return n / 64ull;
+    }
+    else {
+        return n/64ull + 1;
+    }
+}
+
 int main(int argc, char** argv) {
     if(argc != 2) {
         printf("Usage: knap [fileName]\n");
@@ -187,46 +209,54 @@ int main(int argc, char** argv) {
     char ch;
     fp = fopen(argv[1], "r");
  
-    int n;
-    fscanf(fp, "%d\n", &n);
+    uint64_t n;
+    fscanf(fp, "%llu\n", &n);
 
-    sz = ceil((double)n / 64);
-    takenItems = new unsigned long int[sz];
-    
+    sz = numSlots(n);
+    //printf("n: %u, sz: %u\n", n, sz);
+    takenItems = new uint64_t[sz];
+
     Data* data = (Data*)malloc(sizeof(Data) * n); 
 
-    int w,v, index;
-    for (int i = 0; i < n; i++) {
-        fscanf(fp, "%d %d %d \n", &index, &v, &w);
-        data[i] = Data(w, v, v / (float)w, index);
-        //printf("%d %d\n", v, w);
+    uint64_t w,v, index;
+    int off = 0;
+    for (size_t i = 0ull; i < n; i++) {
+        fscanf(fp, "%llu %llu %llu \n", &index, &v, &w);
+        if(i == 0) off = index;
+        data[i] = Data(w, v, v / (float)w, index - off);
+        //printf("%llu %llu\n", v, w);
     }
 
-    int cap;
-    fscanf(fp, "%d", &cap);     
+    uint64_t cap;
+    fscanf(fp, "%llu", &cap);  
+
+    //printf("cap: %llu\n", cap);   
  
     // Closing the file
     fclose(fp);
 
-    //for (int i = 0; i < n; i++) printf("(%d, %d, %.2f)\n", data[i].v, data[i].w, data[i].r);
+    //for (size_t i = 0; i < n; i++) printf("(%llu, %llu, %.2f)\n", data[i].v, data[i].w, data[i].r);
     qsort(data, n, sizeof(Data), cmp);
     //printf("\n");
-    //for (int i = 0; i < n; i++) printf("(%d, %d, %.2f)\n", data[i].v, data[i].w, data[i].r);
+    //for (size_t i = 0; i < n; i++) printf("(%llu, %llu, %.2f)\n", data[i].v, data[i].w, data[i].r);
 
 
-    //int best = solve_r(cap, n, data, 0, 0, 0);
-    int best = solve(cap, n, data);
+    //uint64_t best = solve_r(cap, n, data, 0, 0, 0);
+    uint64_t best = solve(cap, n, data);
 
-    for (int i = 0; i < n; i++) {
-        int mod = i % 64;
-        int div = i / 64;
-        unsigned long int val = (takenItems[div] >> mod) & 1;
+    qsort(data, n, sizeof(Data), cmp2);
+
+    for (size_t i = 0ull; i < n; i++) {
+        uint64_t mod = i % 64ull;
+        uint64_t div = i / 64ull;
+        uint64_t val = (takenItems[div] >> mod) & 1;
         if (val) {
-            printf("Took item [%d %d %d]\n", data[i].index, data[i].v, data[i].w);
+            printf("Took item [%llu %llu %llu]\n", data[i].index, data[i].v, data[i].w);
         }
     }
 
-    printf("[%d]\n", best);
+    printf("[%llu]\n", best);
+    printf("%llu inserts\n", insertCount);
 
     delete [] takenItems;
     return 0;
