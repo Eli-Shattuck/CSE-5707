@@ -65,8 +65,6 @@ uint64_t solve(uint64_t cap, uint64_t n, Data* data) {
     auto cmp = [](Node* a, Node* b) { return a->ub < b->ub; };
     std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> queue(cmp);
 
-    const uint64_t sz = ceil((double)n / 64);
-
     float ub = greedy(data, n, cap, 0);
     queue.push(
         new Node(0, 0, 0, ub, sz)
