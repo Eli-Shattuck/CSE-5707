@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     for(int i = 0; i < N; i++) {
         printf("%d %d %d\n", i, rand() % R + 1, rand() % R + 1);
     }
-    printf("%d\n", (int)(N*(R/2) * 0.7));
+    printf("%d\n", (int)(N*(R/2) * 0.3));
 
     return 0;
 }
