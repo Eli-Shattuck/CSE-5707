@@ -1,9 +1,14 @@
-We worked for roughly 2 or 3 hours at a time, over 4 session. And both did some work alone totaling to around 10 to 15 total hours of total pain.
+We worked for roughly 2 or 3 hours at a time, over 4 sessions. And both did some work alone totaling to around 10 to 15 total hours of total pain.
 
 The most pain came from 2 places: (1) the fact that this is just a hard delicate problem, and neither of us had worked on a problem like this before, and (2) trying to debug a problem where the inputs are so large it is not feasible to step through with the program manually.
 
 There was also some difficulty in making our threaded version, in that it is only faster for some cases, and it is not entirely dependent on *n* when it is faster. Neither of us are actually sure exactly why it is slower in some cases.
+The biggest pain with the threaded version came from the std::set data structure. For some reason, when the std::set data structure is used, neither the threaded version, nor the non-threaded version work. In this case we found that there are significantly less inserts into the set, than into the priority queue. For some reason using a set causes the program to insert significantly less nodes into the data structure.
+Initially we thought the smaller number of inserts was due to the threaded version exploring more branches, rather than diving deep into a single branch. However there was no conclusive evidence to support this. 
+After replacing the set with a priority queue it was able to output the correct answer. Unfortunately using a priority queue with multiple threads is inefficent since each pop operation requires the priority queue to be resorted.
 
 Another source of difficulty is that it is hard to verify that a solution is optimal. When your program just spits out a huge number that's less than your maximum weight, it's hard to know if it did it's job correctly or not.
 
 The last major issue we had was that we were never able to generate good test cases. This is partially because we never needed them because we had enough trouble with the hard cases provided by other students, but also because we were never able to really articulate what makes an instance particularly hard aside from *n*. We made a simple instance generator, but no matter how much we tried to play with the way we picked the weights and values, we couldn't find cases that were harder than just random.
+One idea we had for what makes a test case hard is  when the solution is found in a branch with a _low_ upper bound. Our reasoning for this, is that the branch will only be looked at after all of the other branches with _high_ upper bounds have been traversed.
+Another idea we had for what makes a test case hard is when the weight is at the value that maximizes the number of branches in the tree. This would result in the most possible number of decisions and most branches for the program to decide between.
