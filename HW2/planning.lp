@@ -6,14 +6,14 @@ Minimize
       25 R_4 + 25 R_5 + 25 R_6 + 25 R_7 + 25 R_8
 
 Subject To
- \ cannot produce more than 6000u/month
+ \ cannot produce more than 8000u/month
  \
- pc3: P_3 <= 6000
- pc4: P_4 <= 6000
- pc5: P_5 <= 6000
- pc6: P_6 <= 6000
- pc7: P_7 <= 6000
- pc8: P_8 <= 6000
+ pc3: P_3 <= 8000
+ pc4: P_4 <= 8000
+ pc5: P_5 <= 8000
+ pc6: P_6 <= 8000
+ pc7: P_7 <= 8000
+ pc8: P_8 <= 8000
  \ stored = produced + not ruined
  \
  sc3: S_3 - P_3 = -3050           \  S_3 = P_3 +    1950 - 5000
