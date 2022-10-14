@@ -5,7 +5,6 @@ COWS = 81
 SONS = 9
 N = COWS * SONS + 2
 
-# data common to all populateby functions
 my_obj = [1, 0] + [0] * (N-2)
 my_ub = [cplex.infinity, cplex.infinity] + ([1] * (N-2))
 my_lb = [0] * N
