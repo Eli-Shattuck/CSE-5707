@@ -13,20 +13,17 @@ LEVELS = 5      # L
 INVESTMENTS = 8 # F
 N = LEVELS * INVESTMENTS
 
-#vars = Spent, Back_F ∀F, Invest_L_F ∀L ∀F
-
-# -0.05 Spent + ∑ B_F
+#vars = Spent, Invest_L_F ∀L ∀F
+# -0.5 Spent + ∑ (I_L_F * R[L][F])
+# (0.5 because if Spent = 1, there is $10million available and {I_L_F * R[L][F]} is in millions)
 my_obj      = [-0.5]          + [R[l][f] for l in range(LEVELS) for f in range(INVESTMENTS)] 
 my_ub       = [10]             + [1] * N
 my_lb       = [0]              + [0] * N
 my_ctype    = "I"              + "I" * N
 my_colnames = ["Spent"]        + ["Invest_{}_{}".format(l, f) for l in range(LEVELS) for f in range(INVESTMENTS)]
 
-# S <= 10   ∀F ∑_L I_L_F * R_L_F - B = 0    ∀F ∑_L I_L_F = 1    ∑_
-# budget: S ≤ 10
-# spent : ∑∑(F ⋅ I_L_F) - S = 0
-# back  : ∀F ∑(R_L_F ⋅ I_L_F) - B_F = 0
-# invest: ∀F ∑(I_L_F) = 1
+# spent : ∑∑(I_L_F * L) - Spent = 0
+# invest: ∀F ∑(I_L_F) <= 1
 my_rownames = ["spent"] + ["invest_{}".format(f) for f in range(INVESTMENTS)]
 my_rhs      = [0]       + [1] * INVESTMENTS
 my_sense    = "E"       + "L" * INVESTMENTS
@@ -98,20 +95,20 @@ def main():
     
     print("Spent: {}".format(x[0]))
 
-
+    revenue = 0
     ε = 1e-6
     for f in range(INVESTMENTS):
         dv_f = ""
         for l in range(LEVELS):
             i = 1 + l * INVESTMENTS + f
-
-
             if abs(x[i] - 1) < ε: 
                 dv_f += "Level: {:2d} ".format(l)
+                revenue += R[l][f]
             # dv_s += "{} ".format(i)
         print("Investment {}:".format(f+1))
         print(dv_f)
         print()
+    print("Total Revenue: {}".format(revenue))
 
 
 if __name__ == '__main__':
