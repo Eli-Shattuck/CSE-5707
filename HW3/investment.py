@@ -14,7 +14,6 @@ INVESTMENTS = 8 # F
 N = LEVELS * INVESTMENTS
 
 #vars = Spent, Back_F ∀F, Invest_L_F ∀L ∀F
-
 # -0.05 Spent + ∑ B_F
 my_obj      = [-0.05]          + [1]              * INVESTMENTS                    + [0] * N
 my_ub       = [cplex.infinity] + [cplex.infinity] * INVESTMENTS                    + [1] * N

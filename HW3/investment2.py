@@ -2,11 +2,11 @@ import cplex
 from cplex.exceptions import CplexError
 
 # R[L][F]
-R = [[0  , 0  ,	0  ,	0  ,	0  ,	0  ,	0  ,	0],
-     [4.1, 1.8,	1.5,	2.2,	1.3,	4.2,	2.2,	1.0],
-     [5.8, 3.0,	2.5,	3.8,	2.4,	5.9,	3.5,    1.7],
-     [6.5, 3.9,	3.3,	4.8,	3.2,	6.6,	4.2,	2.3],
-     [6.8, 4.5,	3.8,	5.5,	3.9,	6.8,	4.6,	2.8]
+R = [[0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ],
+     [4.1,    1.8,    1.5,    2.2,    1.3,    4.2,    2.2,    1.0],
+     [5.8,    3.0,    2.5,    3.8,    2.4,    5.9,    3.5,    1.7],
+     [6.5,    3.9,    3.3,    4.8,    3.2,    6.6,    4.2,    2.3],
+     [6.8,    4.5,    3.8,    5.5,    3.9,    6.8,    4.6,    2.8]
 ]
 
 LEVELS = 5      # L
@@ -16,7 +16,7 @@ N = LEVELS * INVESTMENTS
 #vars = Spent, Invest_L_F ∀L ∀F
 # -0.5 Spent + ∑ (I_L_F * R[L][F])
 # (0.5 because if Spent = 1, there is $10million available and {I_L_F * R[L][F]} is in millions)
-my_obj      = [-0.5]          + [R[l][f] for l in range(LEVELS) for f in range(INVESTMENTS)] 
+my_obj      = [-0.5]           + [R[l][f] for l in range(LEVELS) for f in range(INVESTMENTS)] 
 my_ub       = [10]             + [1] * N
 my_lb       = [0]              + [0] * N
 my_ctype    = "I"              + "I" * N
@@ -26,7 +26,7 @@ my_colnames = ["Spent"]        + ["Invest_{}_{}".format(l, f) for l in range(LEV
 # invest: ∀F ∑(I_L_F) <= 1
 my_rownames = ["spent"] + ["invest_{}".format(f) for f in range(INVESTMENTS)]
 my_rhs      = [0]       + [1] * INVESTMENTS
-my_sense    = "E"       + "L" * INVESTMENTS
+my_sense    = "E"       + "E" * INVESTMENTS
 
 print(len(my_obj))
 print(len(my_ub))
@@ -74,7 +74,7 @@ def main():
         populate(model)
         model.solve()
 
-        model.write("invest.lp")
+        model.write("invest2.lp")
     except CplexError as e:
         print(e)
         return
@@ -93,7 +93,7 @@ def main():
     x = model.solution.get_values()
     y = model.variables.get_names()
     
-    print("Spent: {}".format(x[0]))
+    print("Spent        : {}".format(x[0]))
 
     revenue = 0
     ε = 1e-6
@@ -102,12 +102,9 @@ def main():
         for l in range(LEVELS):
             i = 1 + l * INVESTMENTS + f
             if abs(x[i] - 1) < ε: 
-                dv_f += "Level: {:2d} ".format(l)
+                dv_f += "Level {} ".format(l)
                 revenue += R[l][f]
-            # dv_s += "{} ".format(i)
-        print("Investment {}:".format(f+1))
-        print(dv_f)
-        print()
+        print("Investment {} : {}".format(f+1, dv_f))
     print("Total Revenue: {}".format(revenue))
 
 
